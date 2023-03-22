@@ -97,7 +97,8 @@ generate-in-docker: revendor $(HELM)
 	# echo $(shell git describe --abbrev=0 --tags) > VERSION
 	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/fi-ts/gardener-extension-authn golang:1.19.4 \
 		sh -c "cd /go/src/github.com/fi-ts/gardener-extension-authn \
-				&& make install generate \
+				&& make generate \
+				# && make install generate \
 				&& chown -R $(shell id -u):$(shell id -g) ."
 
 .PHONY: format
@@ -124,3 +125,17 @@ test-clean:
 
 .PHONY: verify
 verify: check format test
+
+GO111MODULE := on
+CGO_ENABLED := 1
+LINKMODE := -extldflags '-static -s -w'
+
+.PHONY: push-to-gardener-local
+push-to-gardener-local:
+	CGO_ENABLED=1 go build \
+		-ldflags "$(LINKMODE)" \
+		-tags 'osusergo netgo static_build' \
+		-o bin/gardener-extension-authn \
+		./cmd/gardener-extension-authn
+	docker build -f Dockerfile.dev -t ghcr.io/fi-ts/gardener-extension-authn:latest .
+	kind --name gardener-local load docker-image ghcr.io/fi-ts/gardener-extension-authn:latest

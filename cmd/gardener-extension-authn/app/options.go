@@ -4,6 +4,7 @@ import (
 	"os"
 
 	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
+	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 
 	authncmd "github.com/fi-ts/gardener-extension-authn/pkg/cmd"
@@ -21,12 +22,25 @@ type Options struct {
 	controllerOptions  *controllercmd.ControllerOptions
 	healthOptions      *controllercmd.ControllerOptions
 	controllerSwitches *controllercmd.SwitchOptions
+	webhookOptions     *webhookcmd.AddToManagerOptions
 	reconcileOptions   *controllercmd.ReconcilerOptions
 	optionAggregator   controllercmd.OptionAggregator
 }
 
 // NewOptions creates a new Options instance.
 func NewOptions() *Options {
+	// options for the webhook server
+	webhookServerOptions := &webhookcmd.ServerOptions{
+		Namespace: os.Getenv("WEBHOOK_CONFIG_NAMESPACE"),
+	}
+
+	webhookSwitches := authncmd.WebhookSwitchOptions()
+	webhookOptions := webhookcmd.NewAddToManagerOptions(
+		ExtensionName,
+		webhookServerOptions,
+		webhookSwitches,
+	)
+
 	options := &Options{
 		generalOptions: &controllercmd.GeneralOptions{},
 		authnOptions:   &authncmd.AuthOptions{},
@@ -48,6 +62,7 @@ func NewOptions() *Options {
 		},
 		controllerSwitches: authncmd.ControllerSwitchOptions(),
 		reconcileOptions:   &controllercmd.ReconcilerOptions{},
+		webhookOptions:     webhookOptions,
 	}
 
 	options.optionAggregator = controllercmd.NewOptionAggregator(
@@ -59,6 +74,7 @@ func NewOptions() *Options {
 		controllercmd.PrefixOption("healthcheck-", options.healthOptions),
 		options.controllerSwitches,
 		options.reconcileOptions,
+		options.webhookOptions,
 	)
 
 	return options

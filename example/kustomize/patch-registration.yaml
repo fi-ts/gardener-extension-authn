@@ -1,0 +1,8 @@
+apiVersion: core.gardener.cloud/v1beta1
+kind: ControllerRegistration
+metadata:
+  name: extension-fits-authn
+spec:
+  deployment:
+    policy: Always
+    globallyEnabled: true

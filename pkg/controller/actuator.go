@@ -13,6 +13,7 @@ import (
 	"github.com/gardener/gardener/extensions/pkg/controller/extension"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/client/kubernetes"
+	gutil "github.com/gardener/gardener/pkg/utils/gardener"
 	"github.com/gardener/gardener/pkg/utils/managedresources"
 	"github.com/go-logr/logr"
 	"github.com/metal-stack/metal-lib/pkg/pointer"
@@ -98,9 +99,14 @@ func (a *actuator) Migrate(ctx context.Context, ex *extensionsv1alpha1.Extension
 }
 
 func (a *actuator) createResources(ctx context.Context, authConfig *v1alpha1.AuthnConfig, cluster *controller.Cluster, namespace string) error {
+	shootAccessSecret := gutil.NewShootAccessSecret(gutil.SecretNamePrefixShootAccess+"group-rolebinding-controller", namespace)
+	if err := shootAccessSecret.Reconcile(ctx, a.client); err != nil {
+		return err
+	}
+
 	shootObjects := shootObjects()
 
-	seedObjects, err := seedObjects(&a.config, authConfig, cluster, namespace)
+	seedObjects, err := seedObjects(&a.config, authConfig, cluster, namespace, shootAccessSecret.Secret.Name)
 	if err != nil {
 		return err
 	}
@@ -151,7 +157,7 @@ func (a *actuator) deleteResources(ctx context.Context, namespace string) error 
 	return nil
 }
 
-func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnConfig, cluster *controller.Cluster, namespace string) ([]client.Object, error) {
+func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnConfig, cluster *controller.Cluster, namespace, shootAccessSecretName string) ([]client.Object, error) {
 	authnImage, err := imagevector.ImageVector().FindImage("authn-webhook")
 	if err != nil {
 		return nil, fmt.Errorf("failed to find authn-webhook image: %w", err)
@@ -352,7 +358,7 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 								"--excludeNamespaces=kube-system,kube-public,kube-node-lease,default",
 								"--expectedGroupsList=admin,edit,view",
 								fmt.Sprintf("--clustername=%s", cluster.Shoot.Name),
-								"--kubeconfig=/var/lib/group-rolebinding-controller/kubeconfig",
+								fmt.Sprintf("--kubeconfig=%s", gutil.PathGenericKubeconfig),
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
@@ -375,6 +381,10 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 				},
 			},
 		},
+	}
+
+	if err := gutil.InjectGenericKubeconfig(grcDeployment, shootAccessSecretName); err != nil {
+		return nil, err
 	}
 
 	objects := []client.Object{

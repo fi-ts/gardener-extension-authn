@@ -27,15 +27,13 @@ spec:
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         command:
         - /gardener-extension-authn
-        - --config-file=/etc/{{ include "name" . }}/config/config.yaml
-        - --controlplane-max-concurrent-reconciles={{ .Values.controllers.controlplane.concurrentSyncs }}
-        - --infrastructure-max-concurrent-reconciles={{ .Values.controllers.infrastructure.concurrentSyncs }}
+        - --config=/etc/{{ include "name" . }}/config/config.yaml
+        - --max-concurrent-reconciles={{ .Values.controllers.concurrentSyncs }}
+        - --healthcheck-max-concurrent-reconciles={{ .Values.controllers.healthcheck.concurrentSyncs }}
         - --ignore-operation-annotation={{ .Values.controllers.ignoreOperationAnnotation }}
-        - --worker-max-concurrent-reconciles={{ .Values.controllers.worker.concurrentSyncs }}
         - --webhook-config-namespace={{ .Release.Namespace }}
         - --webhook-config-server-port={{ .Values.webhookConfig.serverPort }}
         - --disable-controllers={{ .Values.disableControllers | join "," }}
-        - --disable-webhooks={{ .Values.disableWebhooks | join "," }}
         env:
         - name: LEADER_ELECTION_NAMESPACE
           valueFrom:
