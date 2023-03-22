@@ -10,7 +10,6 @@ import (
 type AuthnConfig struct {
 	metav1.TypeMeta
 
-	Issuer string
-
+	Issuer   string
 	ClientID string
 }

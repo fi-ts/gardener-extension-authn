@@ -5,7 +5,8 @@ import (
 )
 
 const (
-	AuthResourceName = "extension-fits-auth"
+	SeedAuthResourceName  = "extension-fits-auth"
+	ShootAuthResourceName = "extension-fits-auth-shoot"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -14,7 +15,6 @@ const (
 type AuthnConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
-	Issuer string `json:"issuer,omitempty"`
-
+	Issuer   string `json:"issuer,omitempty"`
 	ClientID string `json:"clientID,omitempty"`
 }

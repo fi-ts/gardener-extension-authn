@@ -9,6 +9,7 @@ import (
 	"github.com/fi-ts/gardener-extension-authn/pkg/apis/config"
 	"github.com/fi-ts/gardener-extension-authn/pkg/imagevector"
 	"github.com/gardener/gardener/extensions/pkg/controller"
+	gardenercontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/controller/extension"
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/gardener/gardener/pkg/client/kubernetes"
@@ -25,6 +26,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -96,18 +98,77 @@ func (a *actuator) Migrate(ctx context.Context, ex *extensionsv1alpha1.Extension
 }
 
 func (a *actuator) createResources(ctx context.Context, authConfig *v1alpha1.AuthnConfig, cluster *controller.Cluster, namespace string) error {
+	shootObjects := shootObjects()
+
+	seedObjects, err := seedObjects(&a.config, authConfig, cluster, namespace)
+	if err != nil {
+		return err
+	}
+
+	shootResources, err := managedresources.NewRegistry(kubernetes.ShootScheme, kubernetes.ShootCodec, kubernetes.ShootSerializer).AddAllAndSerialize(shootObjects...)
+	if err != nil {
+		return err
+	}
+
+	seedResources, err := managedresources.NewRegistry(kubernetes.SeedScheme, kubernetes.SeedCodec, kubernetes.SeedSerializer).AddAllAndSerialize(seedObjects...)
+	if err != nil {
+		return err
+	}
+
+	if err := managedresources.CreateForShoot(ctx, a.client, namespace, v1alpha1.ShootAuthResourceName, false, shootResources); err != nil {
+		return err
+	}
+
+	if err := managedresources.CreateForSeed(ctx, a.client, namespace, v1alpha1.SeedAuthResourceName, false, seedResources); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *actuator) deleteResources(ctx context.Context, namespace string) error {
+	a.log.Info("deleting managed resource for registry cache")
+
+	if err := managedresources.Delete(ctx, a.client, namespace, v1alpha1.ShootAuthResourceName, false); err != nil {
+		return err
+	}
+
+	if err := managedresources.Delete(ctx, a.client, namespace, v1alpha1.SeedAuthResourceName, false); err != nil {
+		return err
+	}
+
+	timeoutCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	defer cancel()
+
+	if err := managedresources.WaitUntilDeleted(timeoutCtx, a.client, namespace, v1alpha1.ShootAuthResourceName); err != nil {
+		return err
+	}
+
+	if err := managedresources.WaitUntilDeleted(timeoutCtx, a.client, namespace, v1alpha1.SeedAuthResourceName); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnConfig, cluster *controller.Cluster, namespace string) ([]client.Object, error) {
 	authnImage, err := imagevector.ImageVector().FindImage("authn-webhook")
 	if err != nil {
-		return fmt.Errorf("failed to find authn-webhook image: %w", err)
+		return nil, fmt.Errorf("failed to find authn-webhook image: %w", err)
 	}
 	grcImage, err := imagevector.ImageVector().FindImage("group-rolebinding-controller")
 	if err != nil {
-		return fmt.Errorf("failed to find group-rolebinding-controller image: %w", err)
+		return nil, fmt.Errorf("failed to find group-rolebinding-controller image: %w", err)
 	}
 
 	tenant, ok := cluster.Shoot.Annotations[tag.ClusterTenant]
 	if !ok {
-		return fmt.Errorf("cluster has no tenant annotation")
+		return nil, fmt.Errorf("cluster has no tenant annotation")
+	}
+
+	replicas := int32(1)
+	if gardenercontroller.IsHibernated(cluster) {
+		replicas = 0
 	}
 
 	webhookDeployment := &appsv1.Deployment{
@@ -119,7 +180,7 @@ func (a *actuator) createResources(ctx context.Context, authConfig *v1alpha1.Aut
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: pointer.Pointer(int32(1)),
+			Replicas: pointer.Pointer(replicas),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"k8s-app": "kube-jwt-authn-webhook",
@@ -190,7 +251,7 @@ func (a *actuator) createResources(ctx context.Context, authConfig *v1alpha1.Aut
 								},
 								{
 									Name:  "PROVIDERTENANT",
-									Value: a.config.Auth.ProviderTenant,
+									Value: cc.Auth.ProviderTenant,
 								},
 								{
 									Name:  "CLUSTER",
@@ -264,7 +325,7 @@ func (a *actuator) createResources(ctx context.Context, authConfig *v1alpha1.Aut
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: pointer.Pointer(int32(1)),
+			Replicas: pointer.Pointer(replicas),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": "group-rolebinding-controller",
@@ -323,9 +384,9 @@ func (a *actuator) createResources(ctx context.Context, authConfig *v1alpha1.Aut
 				Namespace: namespace,
 			},
 			StringData: map[string]string{
-				"metalapi-url":      a.config.Auth.MetalURL,
-				"metalapi-hmac":     a.config.Auth.MetalHMAC,
-				"metalapi-authtype": a.config.Auth.MetalAuthType,
+				"metalapi-url":      cc.Auth.MetalURL,
+				"metalapi-hmac":     cc.Auth.MetalHMAC,
+				"metalapi-authtype": cc.Auth.MetalAuthType,
 			},
 		},
 		webhookDeployment,
@@ -408,7 +469,7 @@ func (a *actuator) createResources(ctx context.Context, authConfig *v1alpha1.Aut
 		},
 	}
 
-	if a.config.ImagePullSecret != nil && a.config.ImagePullSecret.DockerConfigJSON != "" {
+	if cc.ImagePullSecret != nil && cc.ImagePullSecret.DockerConfigJSON != "" {
 		objects = append(objects, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "kube-jwt-authn-webhook-registry-credentials",
@@ -419,7 +480,7 @@ func (a *actuator) createResources(ctx context.Context, authConfig *v1alpha1.Aut
 			},
 			Type: corev1.SecretTypeDockerConfigJson,
 			StringData: map[string]string{
-				".dockerconfigjson": a.config.ImagePullSecret.DockerConfigJSON,
+				".dockerconfigjson": cc.ImagePullSecret.DockerConfigJSON,
 			},
 		}, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -431,7 +492,7 @@ func (a *actuator) createResources(ctx context.Context, authConfig *v1alpha1.Aut
 			},
 			Type: corev1.SecretTypeDockerConfigJson,
 			StringData: map[string]string{
-				".dockerconfigjson": a.config.ImagePullSecret.DockerConfigJSON,
+				".dockerconfigjson": cc.ImagePullSecret.DockerConfigJSON,
 			},
 		})
 
@@ -443,53 +504,26 @@ func (a *actuator) createResources(ctx context.Context, authConfig *v1alpha1.Aut
 		})
 	}
 
-	resources, err := managedresources.NewRegistry(kubernetes.SeedScheme, kubernetes.SeedCodec, kubernetes.SeedSerializer).AddAllAndSerialize(objects...)
-	if err != nil {
-		return err
-	}
-
-	// create ManagedResource for the registryCache
-	err = a.createManagedResources(ctx, v1alpha1.AuthResourceName, namespace, resources, nil)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return objects, nil
 }
 
-func (a *actuator) deleteResources(ctx context.Context, namespace string) error {
-	a.log.Info("deleting managed resource for registry cache")
-
-	if err := managedresources.Delete(ctx, a.client, namespace, v1alpha1.AuthResourceName, false); err != nil {
-		return err
+func shootObjects() []client.Object {
+	return []client.Object{
+		&rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "system:group-rolebinding-controller",
+			},
+			Subjects: []rbacv1.Subject{
+				{
+					Kind: "User",
+					Name: "system:group-rolebinding-controller",
+				},
+			},
+			RoleRef: rbacv1.RoleRef{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind:     "ClusterRole",
+				Name:     "cluster-admin",
+			},
+		},
 	}
-
-	timeoutCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-	defer cancel()
-	return managedresources.WaitUntilDeleted(timeoutCtx, a.client, namespace, v1alpha1.AuthResourceName)
-}
-
-func (a *actuator) createManagedResources(ctx context.Context, name, namespace string, resources map[string][]byte, injectedLabels map[string]string) error {
-	var (
-		secretName, secret = managedresources.NewSecret(a.client, namespace, name, resources, false)
-		managedResource    = managedresources.New(a.client, namespace, name, "", pointer.Pointer(false), nil, injectedLabels, pointer.Pointer(false)).
-					WithSecretRef(secretName).
-					DeletePersistentVolumeClaims(true)
-	)
-
-	if err := secret.Reconcile(ctx); err != nil {
-		return fmt.Errorf("could not create or update secret of managed resources: %w", err)
-	}
-
-	if err := managedResource.Reconcile(ctx); err != nil {
-		return fmt.Errorf("could not create or update managed resource: %w", err)
-	}
-
-	return nil
-}
-
-func (a *actuator) updateStatus(ctx context.Context, ex *extensionsv1alpha1.Extension, _ *v1alpha1.AuthnConfig) error {
-	patch := client.MergeFrom(ex.DeepCopy())
-	// ex.Status.Resources = resources
-	return a.client.Status().Patch(ctx, ex, patch)
 }

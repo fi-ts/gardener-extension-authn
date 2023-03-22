@@ -2,6 +2,7 @@ package controlplane
 
 import (
 	"context"
+	"fmt"
 
 	extensionswebhook "github.com/gardener/gardener/extensions/pkg/webhook"
 	gcontext "github.com/gardener/gardener/extensions/pkg/webhook/context"
@@ -10,9 +11,17 @@ import (
 	"github.com/go-logr/logr"
 
 	"github.com/fi-ts/gardener-extension-authn/pkg/apis/config"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	configlatest "k8s.io/client-go/tools/clientcmd/api/latest"
+	configv1 "k8s.io/client-go/tools/clientcmd/api/v1"
+
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // NewEnsurer creates a new controlplane ensurer.
@@ -38,15 +47,92 @@ func (e *ensurer) InjectClient(client client.Client) error {
 
 // EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
 func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gcontext.GardenContext, new, _ *appsv1.Deployment) error {
+	e.logger.Info("ensuring kube-apiserver deployment")
+
+	cluster, err := gctx.GetCluster(ctx)
+	if err != nil {
+		return err
+	}
+
+	namespace := cluster.ObjectMeta.Namespace
+
+	kubeconfig, err := webhookKubeconfig(namespace)
+	if err != nil {
+		return err
+	}
+
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "authn-webhook-config",
+			Namespace: namespace,
+		},
+		Data: map[string]string{
+			"authn-webhook-config.json": string(kubeconfig),
+		},
+	}
+
+	err = e.client.Get(ctx, client.ObjectKeyFromObject(cm), cm)
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+
+		err = e.client.Create(ctx, cm)
+		if err != nil {
+			return err
+		}
+	}
+
 	template := &new.Spec.Template
 	ps := &template.Spec
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
-		ensureKubeAPIServerCommandLineArgs(c, e.controllerConfig)
-		ensureVolumeMounts(c, e.controllerConfig)
-		ensureVolumes(ps, e.controllerConfig)
+		ensureKubeAPIServerCommandLineArgs(c)
+		ensureVolumeMounts(c)
+		ensureVolumes(ps)
 	}
 
 	return nil
+}
+
+func webhookKubeconfig(namespace string) ([]byte, error) {
+	var (
+		contextName = "kube-jwt-authn-webhook"
+		url         = fmt.Sprintf("https://kube-jwt-authn-webhook.%s.svc.cluster.local/authenticate", namespace)
+	)
+
+	config := &configv1.Config{
+		CurrentContext: contextName,
+		Clusters: []configv1.NamedCluster{
+			{
+				Name: contextName,
+				Cluster: configv1.Cluster{
+					Server: url,
+				},
+			},
+		},
+		Contexts: []configv1.NamedContext{
+			{
+				Name: contextName,
+				Context: configv1.Context{
+					Cluster:  contextName,
+					AuthInfo: contextName,
+				},
+			},
+		},
+		AuthInfos: []configv1.NamedAuthInfo{
+			{
+				Name:     contextName,
+				AuthInfo: configv1.AuthInfo{},
+			},
+		},
+	}
+
+	kubeconfig, err := runtime.Encode(configlatest.Codec, config)
+	if err != nil {
+		return nil, fmt.Errorf("unable to encode webhook kubeconfig: %w", err)
+	}
+
+	return kubeconfig, nil
 }
 
 var (
@@ -80,17 +166,17 @@ var (
 	}
 )
 
-func ensureVolumeMounts(c *corev1.Container, controllerConfig config.ControllerConfiguration) {
+func ensureVolumeMounts(c *corev1.Container) {
 	c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookConfigVolumeMount)
 	c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookCertVolumeMount)
 }
 
-func ensureVolumes(ps *corev1.PodSpec, controllerConfig config.ControllerConfiguration) {
+func ensureVolumes(ps *corev1.PodSpec) {
 	ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookConfigVolume)
 	ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookCertVolume)
 
 }
 
-func ensureKubeAPIServerCommandLineArgs(c *corev1.Container, controllerConfig config.ControllerConfiguration) {
+func ensureKubeAPIServerCommandLineArgs(c *corev1.Container) {
 	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--authentication-token-webhook-config-file=", "/etc/webhook/config/authn-webhook-config.json")
 }
