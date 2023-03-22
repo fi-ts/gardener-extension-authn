@@ -1,0 +1,9 @@
+images:
+- name: authn-webhook
+  sourceRepository: https://git.f-i-ts.de/cloud-native/iam/kubernetes-authn-webhook
+  repository: r.metal-stack.io/extensions/kubernetes-authn-webhook
+  tag: "v0.2.4"
+- name: group-rolebinding-controller
+  sourceRepository: https://git.f-i-ts.de/cloud-native/iam/group-rolebinding-controller
+  repository: r.metal-stack.io/extensions/group-rolebinding-controller
+  tag: "v0.4.2"

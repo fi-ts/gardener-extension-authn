@@ -1,0 +1,3 @@
+/*
+YEAR Copyright FI-TS Finanz Informatik Technologie Service.
+*/

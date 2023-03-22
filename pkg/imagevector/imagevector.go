@@ -1,0 +1,27 @@
+package imagevector
+
+import (
+	"strings"
+
+	"github.com/gardener/gardener/pkg/utils/imagevector"
+	"k8s.io/apimachinery/pkg/util/runtime"
+
+	"github.com/fi-ts/gardener-extension-authn/charts"
+)
+
+var imageVector imagevector.ImageVector
+
+func init() {
+	var err error
+
+	imageVector, err = imagevector.Read(strings.NewReader(charts.ImagesYAML))
+	runtime.Must(err)
+
+	imageVector, err = imagevector.WithEnvOverride(imageVector)
+	runtime.Must(err)
+}
+
+// ImageVector is the image vector that contains all the needed images.
+func ImageVector() imagevector.ImageVector {
+	return imageVector
+}
