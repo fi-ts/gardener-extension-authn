@@ -53,6 +53,7 @@ rules:
   - ""
   resources:
   - secrets
+  - configmaps
   verbs:
   - get
   - list
@@ -94,6 +95,16 @@ rules:
   verbs:
   - update
   - get
+# dns records seem to be a regression?
+- apiGroups:
+  - extensions.gardener.cloud
+  resources:
+  - dnsrecords
+  - dnsrecords/status
+  verbs:
+  - get
+  - list
+  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

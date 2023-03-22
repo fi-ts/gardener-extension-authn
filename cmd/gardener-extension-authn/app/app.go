@@ -7,7 +7,6 @@ import (
 	"github.com/fi-ts/gardener-extension-authn/pkg/apis/authn/install"
 	"github.com/fi-ts/gardener-extension-authn/pkg/controller"
 
-	webhook "github.com/fi-ts/gardener-extension-authn/pkg/webhook/controlplane"
 	extensionscontroller "github.com/gardener/gardener/extensions/pkg/controller"
 	"github.com/gardener/gardener/extensions/pkg/util"
 	"github.com/spf13/cobra"
@@ -70,7 +69,6 @@ func (o *Options) run(ctx context.Context) error {
 
 	ctrlConfig := o.authnOptions.Completed()
 	ctrlConfig.Apply(&controller.DefaultAddOptions.Config)
-	ctrlConfig.Apply(&webhook.DefaultAddOptions.ControllerConfig)
 	o.controllerOptions.Completed().Apply(&controller.DefaultAddOptions.ControllerOptions)
 	o.reconcileOptions.Completed().Apply(&controller.DefaultAddOptions.IgnoreOperationAnnotation)
 

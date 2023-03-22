@@ -34,7 +34,7 @@ import (
 // NewActuator returns an actuator responsible for Extension resources.
 func NewActuator(config config.ControllerConfiguration) extension.Actuator {
 	return &actuator{
-		log:    log.Log.WithName("authn-controller"),
+		log:    log.Log.WithName("fits-authn"),
 		config: config,
 	}
 }
@@ -60,10 +60,6 @@ func (a *actuator) InjectScheme(scheme *runtime.Scheme) error {
 
 // Reconcile the Extension resource.
 func (a *actuator) Reconcile(ctx context.Context, ex *extensionsv1alpha1.Extension) error {
-	if ex.Spec.ProviderConfig == nil {
-		return nil
-	}
-
 	namespace := ex.GetNamespace()
 
 	cluster, err := controller.GetCluster(ctx, a.client, namespace)
@@ -72,8 +68,10 @@ func (a *actuator) Reconcile(ctx context.Context, ex *extensionsv1alpha1.Extensi
 	}
 
 	authnConfig := &v1alpha1.AuthnConfig{}
-	if _, _, err := a.decoder.Decode(ex.Spec.ProviderConfig.Raw, nil, authnConfig); err != nil {
-		return fmt.Errorf("failed to decode provider config: %w", err)
+	if ex.Spec.ProviderConfig != nil {
+		if _, _, err := a.decoder.Decode(ex.Spec.ProviderConfig.Raw, nil, authnConfig); err != nil {
+			return fmt.Errorf("failed to decode provider config: %w", err)
+		}
 	}
 
 	if err := a.createResources(ctx, authnConfig, cluster, namespace); err != nil {
@@ -125,9 +123,13 @@ func (a *actuator) createResources(ctx context.Context, authConfig *v1alpha1.Aut
 		return err
 	}
 
+	a.log.Info("managed resource created successfully", "name", v1alpha1.ShootAuthResourceName)
+
 	if err := managedresources.CreateForSeed(ctx, a.client, namespace, v1alpha1.SeedAuthResourceName, false, seedResources); err != nil {
 		return err
 	}
+
+	a.log.Info("managed resource created successfully", "name", v1alpha1.SeedAuthResourceName)
 
 	return nil
 }

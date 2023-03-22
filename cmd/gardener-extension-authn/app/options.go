@@ -36,7 +36,7 @@ func NewOptions() *Options {
 
 	webhookSwitches := authncmd.WebhookSwitchOptions()
 	webhookOptions := webhookcmd.NewAddToManagerOptions(
-		ExtensionName,
+		"fits-authn",
 		webhookServerOptions,
 		webhookSwitches,
 	)

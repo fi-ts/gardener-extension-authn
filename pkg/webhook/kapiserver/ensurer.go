@@ -1,4 +1,4 @@
-package controlplane
+package kapiserver
 
 import (
 	"context"
@@ -9,8 +9,6 @@ import (
 
 	"github.com/gardener/gardener/extensions/pkg/webhook/controlplane/genericmutator"
 	"github.com/go-logr/logr"
-
-	"github.com/fi-ts/gardener-extension-authn/pkg/apis/config"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -25,18 +23,16 @@ import (
 )
 
 // NewEnsurer creates a new controlplane ensurer.
-func NewEnsurer(logger logr.Logger, controllerConfig config.ControllerConfiguration) genericmutator.Ensurer {
+func NewEnsurer(logger logr.Logger) genericmutator.Ensurer {
 	return &ensurer{
-		logger:           logger.WithName("fits-authn-controlplane-ensurer"),
-		controllerConfig: controllerConfig,
+		logger: logger.WithName("fits-authn-controlplane-ensurer"),
 	}
 }
 
 type ensurer struct {
 	genericmutator.NoopEnsurer
-	client           client.Client
-	logger           logr.Logger
-	controllerConfig config.ControllerConfiguration
+	client client.Client
+	logger logr.Logger
 }
 
 // InjectClient injects the given client into the ensurer.
@@ -46,20 +42,17 @@ func (e *ensurer) InjectClient(client client.Client) error {
 }
 
 // EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
-func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gcontext.GardenContext, new, _ *appsv1.Deployment) error {
-	e.logger.Info("ensuring kube-apiserver deployment")
-
-	cluster, err := gctx.GetCluster(ctx)
-	if err != nil {
-		return err
-	}
-
-	namespace := cluster.ObjectMeta.Namespace
+func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, _ gcontext.GardenContext, new, _ *appsv1.Deployment) error {
+	namespace := new.Namespace
 
 	kubeconfig, err := webhookKubeconfig(namespace)
 	if err != nil {
 		return err
 	}
+
+	e.logger.Info("ensuring webhook configmap")
+
+	e.logger.Info(namespace)
 
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -76,8 +69,12 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 		if !apierrors.IsNotFound(err) {
 			return err
 		}
-
-		err = e.client.Create(ctx, cm)
+		err := e.client.Create(ctx, cm)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := e.client.Update(ctx, cm)
 		if err != nil {
 			return err
 		}
@@ -86,6 +83,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, gctx gconte
 	template := &new.Spec.Template
 	ps := &template.Spec
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
+		e.logger.Info("ensuring kube-apiserver deployment")
 		ensureKubeAPIServerCommandLineArgs(c)
 		ensureVolumeMounts(c)
 		ensureVolumes(ps)
