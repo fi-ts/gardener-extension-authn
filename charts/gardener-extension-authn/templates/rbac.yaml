@@ -79,8 +79,7 @@ rules:
   resources:
   - leases
   resourceNames:
-  - {{ include "leaderelectionid" . }}
-  - gardener-extension-heartbeat
+  - extension-fits-authn-leader-election
   verbs:
   - update
   - get

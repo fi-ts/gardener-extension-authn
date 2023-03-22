@@ -15,6 +15,7 @@ require (
 	k8s.io/apimachinery v0.25.2
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/code-generator v0.23.3
+	k8s.io/component-base v0.25.0
 	sigs.k8s.io/controller-runtime v0.13.0
 )
 
@@ -36,7 +37,6 @@ require (
 	github.com/gardener/etcd-druid v0.7.3 // indirect
 	github.com/gardener/external-dns-management v0.12.5 // indirect
 	github.com/gardener/hvpa-controller v0.3.1 // indirect
-	github.com/gardener/machine-controller-manager v0.47.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-logr/zapr v1.2.3 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
@@ -104,7 +104,6 @@ require (
 	k8s.io/apiextensions-apiserver v0.25.0 // indirect
 	k8s.io/apiserver v0.23.5 // indirect
 	k8s.io/autoscaler v0.0.0-20190805135949-100e91ba756e // indirect
-	k8s.io/component-base v0.25.0 // indirect
 	k8s.io/gengo v0.0.0-20210813121822-485abfe95c7c // indirect
 	k8s.io/helm v2.16.1+incompatible // indirect
 	k8s.io/klog v1.0.0 // indirect

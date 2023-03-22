@@ -106,17 +106,17 @@ format: $(GOIMPORTS)
 
 .PHONY: test
 test:
-	@SKIP_FETCH_TOOLS=1 $(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/test.sh ./cmd/... ./pkg/...
+	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/test.sh ./cmd/... ./pkg/...
 
 .PHONY: test-in-docker
-test-in-docker: revendor
+test-in-docker: revendor $(HELM)
 	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/fi-ts/gardener-extension-authn golang:1.19.4 \
 		sh -c "cd /go/src/github.com/fi-ts/gardener-extension-authn \
-				&& make install check test"
+				&& make install check # add back test target as soon as there are test files"
 
 .PHONY: test-cov
 test-cov:
-	@SKIP_FETCH_TOOLS=1 $(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/test-cover.sh -r ./cmd/... ./pkg/...
+	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/test-cover.sh ./cmd/... ./pkg/...
 
 .PHONY: test-clean
 test-clean:
