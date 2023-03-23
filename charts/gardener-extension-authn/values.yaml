@@ -1,7 +1,7 @@
 image:
   repository: ghcr.io/fi-ts/gardener-extension-authn
   tag: latest
-  pullPolicy: Always
+  pullPolicy: IfNotPresent
 
 replicaCount: 1
 resources: {}
@@ -40,6 +40,10 @@ config:
     burst: 130
   auth:
     providerTenant: provider-tenant
+    metalURL: ""
+    metalHMAC: ""
+    metalAuthType: "Metal-View"
+
   imagePullSecret:
     encodedDockerConfigJSON:
 

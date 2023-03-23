@@ -126,14 +126,10 @@ test-clean:
 .PHONY: verify
 verify: check format test
 
-GO111MODULE := on
-CGO_ENABLED := 1
-LINKMODE := -extldflags '-static -s -w'
-
 .PHONY: push-to-gardener-local
 push-to-gardener-local:
 	CGO_ENABLED=1 go build \
-		-ldflags "$(LINKMODE)" \
+		-ldflags "-extldflags '-static -s -w'" \
 		-tags 'osusergo netgo static_build' \
 		-o bin/gardener-extension-authn \
 		./cmd/gardener-extension-authn

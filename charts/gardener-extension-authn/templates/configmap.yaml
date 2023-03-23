@@ -20,6 +20,9 @@ data:
 
     auth:
       providerTenant: {{ .Values.config.auth.providerTenant }}
+      metalURL: {{ .Values.config.auth.metalURL }}
+      metalHMAC: {{ .Values.config.auth.metalHMAC }}
+      metalAuthType: {{ .Values.config.auth.metalAuthType }}
 
 {{- if .Values.config.imagePullSecret.encodedDockerConfigJSON }}
     imagePullSecret:

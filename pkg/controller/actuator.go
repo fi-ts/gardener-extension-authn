@@ -216,7 +216,7 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 						{
 							Name:            "kubernetes-authn-webhook",
 							Image:           authnImage.Repository,
-							ImagePullPolicy: corev1.PullAlways,
+							ImagePullPolicy: corev1.PullIfNotPresent,
 							Ports: []corev1.ContainerPort{
 								{
 									ContainerPort: 443,
@@ -232,14 +232,6 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 								{
 									Name:  "LISTEN",
 									Value: ":443",
-								},
-								{
-									Name:  "TLSCERTFILE",
-									Value: "/etc/webhook/certs/kube-jwt-authn-webhook-server.crt",
-								},
-								{
-									Name:  "TLSKEYFILE",
-									Value: "/etc/webhook/certs/kube-jwt-authn-webhook-server.key",
 								},
 								{
 									Name:  "ISSUER",
@@ -299,26 +291,8 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 									},
 								},
 							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "webhook-certs",
-									MountPath: "/etc/webhook/certs",
-									ReadOnly:  true,
-								},
-							},
 						},
 					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "webhook-certs",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName: "kube-jwt-authn-webhook-server",
-								},
-							},
-						},
-					},
-					RestartPolicy: corev1.RestartPolicyAlways,
 				},
 			},
 		},
@@ -354,29 +328,13 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 						{
 							Name:            "group-rolebinding-controller",
 							Image:           grcImage.Repository,
-							ImagePullPolicy: corev1.PullAlways,
+							ImagePullPolicy: corev1.PullIfNotPresent,
 							Command:         []string{"/group-rolebinding-controller"},
 							Args: []string{
 								"--excludeNamespaces=kube-system,kube-public,kube-node-lease,default",
 								"--expectedGroupsList=admin,edit,view",
 								fmt.Sprintf("--clustername=%s", cluster.Shoot.Name),
 								fmt.Sprintf("--kubeconfig=%s", gutil.PathGenericKubeconfig),
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "group-rolebinding-controller",
-									MountPath: "/var/lib/group-rolebinding-controller",
-								},
-							},
-						},
-					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "group-rolebinding-controller",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName: "group-rolebinding-controller",
-								},
 							},
 						},
 					},
@@ -528,7 +486,7 @@ func shootObjects() []client.Object {
 			Subjects: []rbacv1.Subject{
 				{
 					Kind: "User",
-					Name: "system:group-rolebinding-controller",
+					Name: "system:serviceaccount:kube-system:group-rolebinding-controller",
 				},
 			},
 			RoleRef: rbacv1.RoleRef{

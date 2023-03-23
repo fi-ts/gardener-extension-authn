@@ -52,8 +52,6 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, _ gcontext.
 
 	e.logger.Info("ensuring webhook configmap")
 
-	e.logger.Info(namespace)
-
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "authn-webhook-config",
@@ -74,6 +72,8 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, _ gcontext.
 			return err
 		}
 	} else {
+		cm.Data["authn-webhook-config.json"] = string(kubeconfig)
+
 		err := e.client.Update(ctx, cm)
 		if err != nil {
 			return err
@@ -84,6 +84,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, _ gcontext.
 	ps := &template.Spec
 	if c := extensionswebhook.ContainerWithName(ps.Containers, "kube-apiserver"); c != nil {
 		e.logger.Info("ensuring kube-apiserver deployment")
+
 		ensureKubeAPIServerCommandLineArgs(c)
 		ensureVolumeMounts(c)
 		ensureVolumes(ps)
@@ -95,7 +96,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, _ gcontext.
 func webhookKubeconfig(namespace string) ([]byte, error) {
 	var (
 		contextName = "kube-jwt-authn-webhook"
-		url         = fmt.Sprintf("https://kube-jwt-authn-webhook.%s.svc.cluster.local/authenticate", namespace)
+		url         = fmt.Sprintf("http://kube-jwt-authn-webhook.%s.svc.cluster.local:443/authenticate", namespace)
 	)
 
 	config := &configv1.Config{
@@ -148,31 +149,14 @@ var (
 			},
 		},
 	}
-	// cert mount "kube-jwt-authn-webhook-server" that is referenced from the authn-webhook-config
-	authnWebhookCertVolumeMount = corev1.VolumeMount{
-		Name:      "authn-webhook-cert",
-		MountPath: "/etc/webhook/certs",
-		ReadOnly:  true,
-	}
-	authnWebhookCertVolume = corev1.Volume{
-		Name: "authn-webhook-cert",
-		VolumeSource: corev1.VolumeSource{
-			Secret: &corev1.SecretVolumeSource{
-				SecretName: "kube-jwt-authn-webhook-server",
-			},
-		},
-	}
 )
 
 func ensureVolumeMounts(c *corev1.Container) {
 	c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookConfigVolumeMount)
-	c.VolumeMounts = extensionswebhook.EnsureVolumeMountWithName(c.VolumeMounts, authnWebhookCertVolumeMount)
 }
 
 func ensureVolumes(ps *corev1.PodSpec) {
 	ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookConfigVolume)
-	ps.Volumes = extensionswebhook.EnsureVolumeWithName(ps.Volumes, authnWebhookCertVolume)
-
 }
 
 func ensureKubeAPIServerCommandLineArgs(c *corev1.Container) {

@@ -17,6 +17,6 @@ func ControllerSwitchOptions() *controllercmd.SwitchOptions {
 // WebhookSwitchOptions are the webhookcmd.SwitchOptions for the provider webhooks.
 func WebhookSwitchOptions() *webhookcmd.SwitchOptions {
 	return webhookcmd.NewSwitchOptions(
-		webhookcmd.Switch("fits-authn-controlplane-webhook", kapiserver.New),
+		webhookcmd.Switch("fits-authn-webhook", kapiserver.New),
 	)
 }
