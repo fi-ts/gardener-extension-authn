@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"time"
 
@@ -441,6 +442,11 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 	}
 
 	if cc.ImagePullSecret != nil && cc.ImagePullSecret.DockerConfigJSON != "" {
+		content, err := base64.StdEncoding.DecodeString(cc.ImagePullSecret.DockerConfigJSON)
+		if err != nil {
+			return nil, fmt.Errorf("unable to decode image pull secret: %w", err)
+		}
+
 		objects = append(objects, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "kube-jwt-authn-webhook-registry-credentials",
@@ -451,7 +457,7 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 			},
 			Type: corev1.SecretTypeDockerConfigJson,
 			Data: map[string][]byte{
-				".dockerconfigjson": []byte(cc.ImagePullSecret.DockerConfigJSON),
+				".dockerconfigjson": content,
 			},
 		}, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -463,7 +469,7 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 			},
 			Type: corev1.SecretTypeDockerConfigJson,
 			Data: map[string][]byte{
-				".dockerconfigjson": []byte(cc.ImagePullSecret.DockerConfigJSON),
+				".dockerconfigjson": content,
 			},
 		})
 
