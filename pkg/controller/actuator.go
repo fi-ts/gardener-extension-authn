@@ -450,8 +450,8 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 				},
 			},
 			Type: corev1.SecretTypeDockerConfigJson,
-			StringData: map[string]string{
-				".dockerconfigjson": cc.ImagePullSecret.DockerConfigJSON,
+			Data: map[string][]byte{
+				".dockerconfigjson": []byte(cc.ImagePullSecret.DockerConfigJSON),
 			},
 		}, &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -462,8 +462,8 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 				},
 			},
 			Type: corev1.SecretTypeDockerConfigJson,
-			StringData: map[string]string{
-				".dockerconfigjson": cc.ImagePullSecret.DockerConfigJSON,
+			Data: map[string][]byte{
+				".dockerconfigjson": []byte(cc.ImagePullSecret.DockerConfigJSON),
 			},
 		})
 
