@@ -217,7 +217,7 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 					Containers: []corev1.Container{
 						{
 							Name:            "kubernetes-authn-webhook",
-							Image:           authnImage.Repository,
+							Image:           authnImage.String(),
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Ports: []corev1.ContainerPort{
 								{
@@ -329,7 +329,7 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 					Containers: []corev1.Container{
 						{
 							Name:            "group-rolebinding-controller",
-							Image:           grcImage.Repository,
+							Image:           grcImage.String(),
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Command:         []string{"/group-rolebinding-controller"},
 							Args: []string{
