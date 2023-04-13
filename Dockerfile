@@ -2,7 +2,8 @@ FROM golang:1.20 AS builder
 
 WORKDIR /go/src/github.com/fi-ts/gardener-extension-authn
 COPY . .
-RUN make install
+RUN make install \
+ && strip /go/bin/gardener-extension-authn
 
 FROM alpine:3.17
 WORKDIR /
