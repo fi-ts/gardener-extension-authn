@@ -1,15 +1,15 @@
 module github.com/fi-ts/gardener-extension-authn
 
-go 1.19
+go 1.20
 
 require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/gardener/gardener v1.44.6
-	github.com/go-logr/logr v1.2.3
+	github.com/go-logr/logr v1.2.4
 	github.com/golang/mock v1.6.0
 	github.com/metal-stack/metal-lib v0.11.6
 	github.com/onsi/ginkgo v1.16.5
-	github.com/spf13/cobra v1.6.1
+	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
 	k8s.io/api v0.25.2
 	k8s.io/apimachinery v0.25.2
@@ -82,20 +82,20 @@ require (
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
-	go.uber.org/multierr v1.9.0 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/crypto v0.7.0 // indirect
-	golang.org/x/mod v0.8.0 // indirect
-	golang.org/x/net v0.8.0 // indirect
-	golang.org/x/oauth2 v0.6.0 // indirect
-	golang.org/x/sys v0.6.0 // indirect
-	golang.org/x/term v0.6.0 // indirect
-	golang.org/x/text v0.8.0 // indirect
-	golang.org/x/time v0.1.0 // indirect
-	golang.org/x/tools v0.6.0 // indirect
+	golang.org/x/crypto v0.8.0 // indirect
+	golang.org/x/mod v0.10.0 // indirect
+	golang.org/x/net v0.9.0 // indirect
+	golang.org/x/oauth2 v0.7.0 // indirect
+	golang.org/x/sys v0.7.0 // indirect
+	golang.org/x/term v0.7.0 // indirect
+	golang.org/x/text v0.9.0 // indirect
+	golang.org/x/time v0.3.0 // indirect
+	golang.org/x/tools v0.8.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/protobuf v1.28.1 // indirect
+	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
@@ -117,24 +117,22 @@ require (
 	k8s.io/utils v0.0.0-20221011040102-427025108f67 // indirect
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20211208212546-f236f0345ad2 // indirect
 	sigs.k8s.io/controller-tools v0.8.0 // indirect
+	sigs.k8s.io/json v0.0.0-20211020170558-c049b76a60c6 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
 replace (
-	// github.com/go-logr/logr => github.com/go-logr/logr v1.2.0
-	// github.com/go-logr/zapr => github.com/go-logr/zapr v1.2.0
-
-	k8s.io/api => k8s.io/api v0.22.2
-	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.22.2
-	k8s.io/apimachinery => k8s.io/apimachinery v0.22.2
-	k8s.io/apiserver => k8s.io/apiserver v0.22.2
-	k8s.io/client-go => k8s.io/client-go v0.22.2
-	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.22.2
-	k8s.io/code-generator => k8s.io/code-generator v0.22.2
-	k8s.io/component-base => k8s.io/component-base v0.22.2
+	k8s.io/api => k8s.io/api v0.23.3
+	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.23.3
+	k8s.io/apimachinery => k8s.io/apimachinery v0.23.3
+	k8s.io/apiserver => k8s.io/apiserver v0.23.3
+	k8s.io/client-go => k8s.io/client-go v0.23.3
+	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.23.3
+	k8s.io/code-generator => k8s.io/code-generator v0.23.3
+	k8s.io/component-base => k8s.io/component-base v0.23.3
 	k8s.io/klog/v2 => k8s.io/klog/v2 v2.30.0
-	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.22.2
+	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.23.3
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20220124234850-424119656bbf
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.11.0
 )
