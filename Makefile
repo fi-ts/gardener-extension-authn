@@ -82,11 +82,6 @@ clean:
 check-generate:
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check-generate.sh $(REPO_ROOT)
 
-.PHONY: check
-check: $(GOIMPORTS) $(GOLANGCI_LINT) $(HELM)
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check.sh --golangci-lint-config=./.golangci.yaml ./cmd/... ./pkg/...
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/check-charts.sh ./charts
-
 .PHONY: generate
 generate: $(HELM)
 	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/generate.sh ./charts/... ./cmd/... ./pkg/...
@@ -101,30 +96,9 @@ generate-in-docker: revendor $(HELM)
 				# && make install generate \
 				&& chown -R $(shell id -u):$(shell id -g) ."
 
-.PHONY: format
-format: $(GOIMPORTS)
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/format.sh ./cmd ./pkg
-
 .PHONY: test
 test:
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/test.sh ./cmd/... ./pkg/...
-
-.PHONY: test-in-docker
-test-in-docker: revendor $(HELM)
-	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/fi-ts/gardener-extension-authn golang:1.19.4 \
-		sh -c "cd /go/src/github.com/fi-ts/gardener-extension-authn \
-				&& make install check # add back test target as soon as there are test files"
-
-.PHONY: test-cov
-test-cov:
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/test-cover.sh ./cmd/... ./pkg/...
-
-.PHONY: test-clean
-test-clean:
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/test-cover-clean.sh
-
-.PHONY: verify
-verify: check format test
+	go test -v ./...
 
 .PHONY: push-to-gardener-local
 push-to-gardener-local:
