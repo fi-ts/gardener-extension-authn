@@ -257,7 +257,7 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 								},
 								{
 									Name:  "CLUSTER",
-									Value: cluster.ObjectMeta.Name,
+									Value: cluster.Shoot.Name,
 								},
 								{
 									Name: "METAL_URL",
