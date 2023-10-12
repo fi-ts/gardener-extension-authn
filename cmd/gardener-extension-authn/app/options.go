@@ -4,7 +4,9 @@ import (
 	"os"
 
 	controllercmd "github.com/gardener/gardener/extensions/pkg/controller/cmd"
+	heartbeatcmd "github.com/gardener/gardener/extensions/pkg/controller/heartbeat/cmd"
 	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
+
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 
 	authncmd "github.com/fi-ts/gardener-extension-authn/pkg/cmd"
@@ -20,6 +22,7 @@ type Options struct {
 	restOptions        *controllercmd.RESTOptions
 	managerOptions     *controllercmd.ManagerOptions
 	controllerOptions  *controllercmd.ControllerOptions
+	heartbeatOptions   *heartbeatcmd.Options
 	healthOptions      *controllercmd.ControllerOptions
 	controllerSwitches *controllercmd.SwitchOptions
 	webhookOptions     *webhookcmd.AddToManagerOptions
@@ -37,6 +40,8 @@ func NewOptions() *Options {
 	webhookSwitches := authncmd.WebhookSwitchOptions()
 	webhookOptions := webhookcmd.NewAddToManagerOptions(
 		"fits-authn",
+		"",
+		nil,
 		webhookServerOptions,
 		webhookSwitches,
 	)
@@ -56,6 +61,12 @@ func NewOptions() *Options {
 			// This is a default value.
 			MaxConcurrentReconciles: 5,
 		},
+		heartbeatOptions: &heartbeatcmd.Options{
+			// This is a default value.
+			ExtensionName:        ExtensionName,
+			RenewIntervalSeconds: 30,
+			Namespace:            os.Getenv("LEADER_ELECTION_NAMESPACE"),
+		},
 		healthOptions: &controllercmd.ControllerOptions{
 			// This is a default value.
 			MaxConcurrentReconciles: 5,
@@ -71,6 +82,7 @@ func NewOptions() *Options {
 		options.managerOptions,
 		options.controllerOptions,
 		options.authnOptions,
+		controllercmd.PrefixOption("heartbeat-", options.heartbeatOptions),
 		controllercmd.PrefixOption("healthcheck-", options.healthOptions),
 		options.controllerSwitches,
 		options.reconcileOptions,
