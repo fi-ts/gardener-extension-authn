@@ -27,7 +27,6 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -198,10 +197,10 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 					Labels: map[string]string{
 						"k8s-app": "kube-jwt-authn-webhook",
 						"app":     "kube-jwt-authn-webhook",
-						"networking.gardener.cloud/from-prometheus":    "allowed",
-						"networking.gardener.cloud/to-dns":             "allowed",
-						"networking.gardener.cloud/to-shoot-apiserver": "allowed",
-						"networking.gardener.cloud/to-public-networks": "allowed",
+						"networking.gardener.cloud/from-prometheus":      "allowed",
+						"networking.gardener.cloud/from-shoot-apiserver": "allowed",
+						"networking.gardener.cloud/to-dns":               "allowed",
+						"networking.gardener.cloud/to-public-networks":   "allowed",
 					},
 					Annotations: map[string]string{
 						"scheduler.alpha.kubernetes.io/critical-pod": "",
@@ -378,62 +377,6 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 						TargetPort: intstr.FromInt(443),
 					},
 				},
-			},
-		},
-		&networkingv1.NetworkPolicy{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "kube-jwt-authn-webhook-allow-namespace",
-				Namespace: namespace,
-			},
-			Spec: networkingv1.NetworkPolicySpec{
-				PodSelector: metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"app": "kube-jwt-authn-webhook",
-					},
-				},
-				Ingress: []networkingv1.NetworkPolicyIngressRule{
-					{
-						From: []networkingv1.NetworkPolicyPeer{
-							{
-								PodSelector: &metav1.LabelSelector{
-									MatchLabels: map[string]string{
-										"app":  "kubernetes",
-										"role": "apiserver",
-									},
-								},
-							},
-						},
-					},
-				},
-				PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
-			},
-		},
-		&networkingv1.NetworkPolicy{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "kubeapi2kube-jwt-authn-webhook",
-				Namespace: namespace,
-			},
-			Spec: networkingv1.NetworkPolicySpec{
-				PodSelector: metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"app": "kube-jwt-authn-webhook",
-					},
-				},
-				Egress: []networkingv1.NetworkPolicyEgressRule{
-					{
-						To: []networkingv1.NetworkPolicyPeer{
-							{
-								PodSelector: &metav1.LabelSelector{
-									MatchLabels: map[string]string{
-										"app":  "kubernetes",
-										"role": "apiserver",
-									},
-								},
-							},
-						},
-					},
-				},
-				PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeEgress},
 			},
 		},
 	}

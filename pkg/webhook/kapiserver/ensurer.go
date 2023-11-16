@@ -90,6 +90,8 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, _ gcontext.
 		ensureVolumes(ps)
 	}
 
+	template.Labels["networking.resources.gardener.cloud/to-kube-jwt-authn-webhook-tcp-443"] = "allowed"
+
 	return nil
 }
 
