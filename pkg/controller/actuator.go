@@ -315,10 +315,11 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"app": "group-rolebinding-controller",
-						"networking.gardener.cloud/from-prometheus":    "allowed",
-						"networking.gardener.cloud/to-dns":             "allowed",
-						"networking.gardener.cloud/to-shoot-apiserver": "allowed",
-						"networking.gardener.cloud/to-public-networks": "allowed",
+						"networking.gardener.cloud/from-prometheus":                     "allowed",
+						"networking.gardener.cloud/to-dns":                              "allowed",
+						"networking.gardener.cloud/to-shoot-apiserver":                  "allowed",
+						"networking.gardener.cloud/to-public-networks":                  "allowed",
+						"networking.resources.gardener.cloud/to-kube-apiserver-tcp-443": "allowed",
 					},
 				},
 				Spec: corev1.PodSpec{
