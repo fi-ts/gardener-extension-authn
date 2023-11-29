@@ -160,5 +160,10 @@ func ensureVolumes(ps *corev1.PodSpec) {
 }
 
 func ensureKubeAPIServerCommandLineArgs(c *corev1.Container) {
-	c.Command = extensionswebhook.EnsureStringWithPrefix(c.Command, "--authentication-token-webhook-config-file=", "/etc/webhook/config/authn-webhook-config.json")
+	c.Command = extensionswebhook.EnsureStringWithPrefix(
+		c.Command,
+		"--authentication-token-webhook-config-file=",
+		"/etc/webhook/config/authn-webhook-config.json",
+	)
+	c.Command = append(c.Command, "--authentication-token-webhook-version=v1")
 }
