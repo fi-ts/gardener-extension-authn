@@ -10,7 +10,7 @@
 package config
 
 import (
-	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/controller/healthcheck/config"
+	apisconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -37,8 +37,8 @@ func (in *ControllerConfiguration) DeepCopyInto(out *ControllerConfiguration) {
 	out.Auth = in.Auth
 	if in.HealthCheckConfig != nil {
 		in, out := &in.HealthCheckConfig, &out.HealthCheckConfig
-		*out = new(healthcheckconfig.HealthCheckConfig)
-		**out = **in
+		*out = new(apisconfig.HealthCheckConfig)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.ImagePullSecret != nil {
 		in, out := &in.ImagePullSecret, &out.ImagePullSecret

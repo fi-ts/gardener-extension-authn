@@ -3,7 +3,7 @@ package config
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	healthcheckconfigv1alpha1 "github.com/gardener/gardener/extensions/pkg/controller/healthcheck/config"
+	healthcheckconfig "github.com/gardener/gardener/extensions/pkg/apis/config"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -16,7 +16,7 @@ type ControllerConfiguration struct {
 	Auth Auth
 
 	// HealthCheckConfig is the config for the health check controller
-	HealthCheckConfig *healthcheckconfigv1alpha1.HealthCheckConfig
+	HealthCheckConfig *healthcheckconfig.HealthCheckConfig
 
 	// ImagePullSecret provides an opportunity to inject an image pull secret into the resource deployments
 	ImagePullSecret *ImagePullSecret

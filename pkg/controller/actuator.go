@@ -24,11 +24,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -36,13 +34,11 @@ import (
 // NewActuator returns an actuator responsible for Extension resources.
 func NewActuator(config config.ControllerConfiguration) extension.Actuator {
 	return &actuator{
-		log:    log.Log.WithName("fits-authn"),
 		config: config,
 	}
 }
 
 type actuator struct {
-	log     logr.Logger
 	client  client.Client
 	decoder runtime.Decoder
 	config  config.ControllerConfiguration
@@ -61,7 +57,7 @@ func (a *actuator) InjectScheme(scheme *runtime.Scheme) error {
 }
 
 // Reconcile the Extension resource.
-func (a *actuator) Reconcile(ctx context.Context, ex *extensionsv1alpha1.Extension) error {
+func (a *actuator) Reconcile(ctx context.Context, log logr.Logger, ex *extensionsv1alpha1.Extension) error {
 	namespace := ex.GetNamespace()
 
 	cluster, err := controller.GetCluster(ctx, a.client, namespace)
@@ -76,7 +72,7 @@ func (a *actuator) Reconcile(ctx context.Context, ex *extensionsv1alpha1.Extensi
 		}
 	}
 
-	if err := a.createResources(ctx, authnConfig, cluster, namespace); err != nil {
+	if err := a.createResources(ctx, log, authnConfig, cluster, namespace); err != nil {
 		return err
 	}
 
@@ -84,21 +80,21 @@ func (a *actuator) Reconcile(ctx context.Context, ex *extensionsv1alpha1.Extensi
 }
 
 // Delete the Extension resource.
-func (a *actuator) Delete(ctx context.Context, ex *extensionsv1alpha1.Extension) error {
-	return a.deleteResources(ctx, ex.GetNamespace())
+func (a *actuator) Delete(ctx context.Context, log logr.Logger, ex *extensionsv1alpha1.Extension) error {
+	return a.deleteResources(ctx, log, ex.GetNamespace())
 }
 
 // Restore the Extension resource.
-func (a *actuator) Restore(ctx context.Context, ex *extensionsv1alpha1.Extension) error {
-	return a.Reconcile(ctx, ex)
+func (a *actuator) Restore(ctx context.Context, log logr.Logger, ex *extensionsv1alpha1.Extension) error {
+	return a.Reconcile(ctx, log, ex)
 }
 
 // Migrate the Extension resource.
-func (a *actuator) Migrate(ctx context.Context, ex *extensionsv1alpha1.Extension) error {
+func (a *actuator) Migrate(ctx context.Context, log logr.Logger, ex *extensionsv1alpha1.Extension) error {
 	return nil
 }
 
-func (a *actuator) createResources(ctx context.Context, authConfig *v1alpha1.AuthnConfig, cluster *controller.Cluster, namespace string) error {
+func (a *actuator) createResources(ctx context.Context, log logr.Logger, authConfig *v1alpha1.AuthnConfig, cluster *controller.Cluster, namespace string) error {
 	shootAccessSecret := gutil.NewShootAccessSecret(gutil.SecretNamePrefixShootAccess+"group-rolebinding-controller", namespace)
 	if err := shootAccessSecret.Reconcile(ctx, a.client); err != nil {
 		return err
@@ -121,23 +117,23 @@ func (a *actuator) createResources(ctx context.Context, authConfig *v1alpha1.Aut
 		return err
 	}
 
-	if err := managedresources.CreateForShoot(ctx, a.client, namespace, v1alpha1.ShootAuthResourceName, false, shootResources); err != nil {
+	if err := managedresources.CreateForShoot(ctx, a.client, namespace, v1alpha1.ShootAuthResourceName, "fits-authn", false, shootResources); err != nil {
 		return err
 	}
 
-	a.log.Info("managed resource created successfully", "name", v1alpha1.ShootAuthResourceName)
+	log.Info("managed resource created successfully", "name", v1alpha1.ShootAuthResourceName)
 
 	if err := managedresources.CreateForSeed(ctx, a.client, namespace, v1alpha1.SeedAuthResourceName, false, seedResources); err != nil {
 		return err
 	}
 
-	a.log.Info("managed resource created successfully", "name", v1alpha1.SeedAuthResourceName)
+	log.Info("managed resource created successfully", "name", v1alpha1.SeedAuthResourceName)
 
 	return nil
 }
 
-func (a *actuator) deleteResources(ctx context.Context, namespace string) error {
-	a.log.Info("deleting managed resource for registry cache")
+func (a *actuator) deleteResources(ctx context.Context, log logr.Logger, namespace string) error {
+	log.Info("deleting managed resource for registry cache")
 
 	if err := managedresources.Delete(ctx, a.client, namespace, v1alpha1.ShootAuthResourceName, false); err != nil {
 		return err
@@ -201,10 +197,10 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 					Labels: map[string]string{
 						"k8s-app": "kube-jwt-authn-webhook",
 						"app":     "kube-jwt-authn-webhook",
-						"networking.gardener.cloud/from-prometheus":    "allowed",
-						"networking.gardener.cloud/to-dns":             "allowed",
-						"networking.gardener.cloud/to-shoot-apiserver": "allowed",
-						"networking.gardener.cloud/to-public-networks": "allowed",
+						"networking.gardener.cloud/from-prometheus":      "allowed",
+						"networking.gardener.cloud/from-shoot-apiserver": "allowed",
+						"networking.gardener.cloud/to-dns":               "allowed",
+						"networking.gardener.cloud/to-public-networks":   "allowed",
 					},
 					Annotations: map[string]string{
 						"scheduler.alpha.kubernetes.io/critical-pod": "",
@@ -319,10 +315,11 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
 						"app": "group-rolebinding-controller",
-						"networking.gardener.cloud/from-prometheus":    "allowed",
-						"networking.gardener.cloud/to-dns":             "allowed",
-						"networking.gardener.cloud/to-shoot-apiserver": "allowed",
-						"networking.gardener.cloud/to-public-networks": "allowed",
+						"networking.gardener.cloud/from-prometheus":                     "allowed",
+						"networking.gardener.cloud/to-dns":                              "allowed",
+						"networking.gardener.cloud/to-shoot-apiserver":                  "allowed",
+						"networking.gardener.cloud/to-public-networks":                  "allowed",
+						"networking.resources.gardener.cloud/to-kube-apiserver-tcp-443": "allowed",
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -381,62 +378,6 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 						TargetPort: intstr.FromInt(443),
 					},
 				},
-			},
-		},
-		&networkingv1.NetworkPolicy{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "kube-jwt-authn-webhook-allow-namespace",
-				Namespace: namespace,
-			},
-			Spec: networkingv1.NetworkPolicySpec{
-				PodSelector: metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"app": "kube-jwt-authn-webhook",
-					},
-				},
-				Ingress: []networkingv1.NetworkPolicyIngressRule{
-					{
-						From: []networkingv1.NetworkPolicyPeer{
-							{
-								PodSelector: &metav1.LabelSelector{
-									MatchLabels: map[string]string{
-										"app":  "kubernetes",
-										"role": "apiserver",
-									},
-								},
-							},
-						},
-					},
-				},
-				PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeIngress},
-			},
-		},
-		&networkingv1.NetworkPolicy{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "kubeapi2kube-jwt-authn-webhook",
-				Namespace: namespace,
-			},
-			Spec: networkingv1.NetworkPolicySpec{
-				PodSelector: metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"app": "kube-jwt-authn-webhook",
-					},
-				},
-				Egress: []networkingv1.NetworkPolicyEgressRule{
-					{
-						To: []networkingv1.NetworkPolicyPeer{
-							{
-								PodSelector: &metav1.LabelSelector{
-									MatchLabels: map[string]string{
-										"app":  "kubernetes",
-										"role": "apiserver",
-									},
-								},
-							},
-						},
-					},
-				},
-				PolicyTypes: []networkingv1.PolicyType{networkingv1.PolicyTypeEgress},
 			},
 		},
 	}
