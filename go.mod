@@ -9,7 +9,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/metal-stack/metal-lib v0.13.3
 	github.com/onsi/ginkgo v1.16.5
-	github.com/spf13/cobra v1.7.0
+	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
 	k8s.io/api v0.26.3
 	k8s.io/apimachinery v0.27.4
@@ -28,7 +28,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/bronze1man/yaml2json v0.0.0-20211227013850-8972abeaea25 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/coreos/go-systemd/v22 v22.4.0 // indirect
+	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.10.2 // indirect
