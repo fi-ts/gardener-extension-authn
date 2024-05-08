@@ -11,7 +11,7 @@ IGNORE_OPERATION_ANNOTATION := false
 WEBHOOK_CONFIG_URL          := localhost
 
 GOLANGCI_LINT_VERSION := v1.54.2
-GO_VERSION := 1.21
+GO_VERSION := 1.22
 
 ifeq ($(CI),true)
   DOCKER_TTY_ARG=""
@@ -75,16 +75,14 @@ check-generate:
 
 .PHONY: generate
 generate: $(HELM)
-	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/generate.sh ./charts/... ./cmd/... ./pkg/...
+	@$(REPO_ROOT)/vendor/github.com/gardener/gardener/hack/generate-sequential.sh ./charts/... ./cmd/... ./pkg/...
 
 .PHONY: generate-in-docker
 generate-in-docker: revendor $(HELM) $(YQ)
-	# comment back in after first release:
-	# echo $(shell git describe --abbrev=0 --tags) > VERSION
+	echo $(shell git describe --abbrev=0 --tags) > VERSION
 	docker run --rm -i$(DOCKER_TTY_ARG) -v $(PWD):/go/src/github.com/fi-ts/gardener-extension-authn golang:$(GO_VERSION) \
 		sh -c "cd /go/src/github.com/fi-ts/gardener-extension-authn \
 				&& make generate \
-				# && make install generate \
 				&& chown -R $(shell id -u):$(shell id -g) ."
 
 .PHONY: test
