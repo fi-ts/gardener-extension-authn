@@ -7,8 +7,6 @@ import (
 	heartbeatcmd "github.com/gardener/gardener/extensions/pkg/controller/heartbeat/cmd"
 	webhookcmd "github.com/gardener/gardener/extensions/pkg/webhook/cmd"
 
-	"k8s.io/client-go/tools/leaderelection/resourcelock"
-
 	authncmd "github.com/fi-ts/gardener-extension-authn/pkg/cmd"
 )
 
@@ -52,10 +50,9 @@ func NewOptions() *Options {
 		restOptions:    &controllercmd.RESTOptions{},
 		managerOptions: &controllercmd.ManagerOptions{
 			// These are default values.
-			LeaderElection:             true,
-			LeaderElectionID:           controllercmd.LeaderElectionNameID(ExtensionName),
-			LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
-			LeaderElectionNamespace:    os.Getenv("LEADER_ELECTION_NAMESPACE"),
+			LeaderElection:          true,
+			LeaderElectionID:        controllercmd.LeaderElectionNameID(ExtensionName),
+			LeaderElectionNamespace: os.Getenv("LEADER_ELECTION_NAMESPACE"),
 		},
 		controllerOptions: &controllercmd.ControllerOptions{
 			// This is a default value.

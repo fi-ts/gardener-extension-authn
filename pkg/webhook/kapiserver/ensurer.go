@@ -11,6 +11,7 @@ import (
 	"github.com/go-logr/logr"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -23,8 +24,9 @@ import (
 )
 
 // NewEnsurer creates a new controlplane ensurer.
-func NewEnsurer(logger logr.Logger) genericmutator.Ensurer {
+func NewEnsurer(mgr manager.Manager, logger logr.Logger) genericmutator.Ensurer {
 	return &ensurer{
+		client: mgr.GetClient(),
 		logger: logger.WithName("fits-authn-controlplane-ensurer"),
 	}
 }
@@ -33,12 +35,6 @@ type ensurer struct {
 	genericmutator.NoopEnsurer
 	client client.Client
 	logger logr.Logger
-}
-
-// InjectClient injects the given client into the ensurer.
-func (e *ensurer) InjectClient(client client.Client) error {
-	e.client = client
-	return nil
 }
 
 // EnsureKubeAPIServerDeployment ensures that the kube-apiserver deployment conforms to the provider requirements.
