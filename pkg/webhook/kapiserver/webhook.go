@@ -51,7 +51,7 @@ func New(mgr manager.Manager) (*extensionswebhook.Webhook, error) {
 		Target:   extensionswebhook.TargetSeed,
 		Path:     "kapiserver",
 		Webhook:  &admission.Webhook{Handler: handler},
-		Selector: namespaceSelector,
+		NamespaceSelector: namespaceSelector,
 	}
 
 	return webhook, err
