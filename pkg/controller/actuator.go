@@ -213,7 +213,7 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 							ImagePullPolicy: corev1.PullIfNotPresent,
 							Ports: []corev1.ContainerPort{
 								{
-									ContainerPort: 443,
+									ContainerPort: 8443,
 									Protocol:      corev1.ProtocolTCP,
 								},
 								{
@@ -225,7 +225,7 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 							Env: []corev1.EnvVar{
 								{
 									Name:  "LISTEN",
-									Value: ":443",
+									Value: ":8443",
 								},
 								{
 									Name:  "ISSUER",
@@ -370,8 +370,8 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 				},
 				Ports: []corev1.ServicePort{
 					{
-						Port:       443,
-						TargetPort: intstr.FromInt(443),
+						Port:       8443,
+						TargetPort: intstr.FromInt(8443),
 					},
 				},
 			},
