@@ -86,7 +86,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, _ gcontext.
 		ensureVolumes(ps)
 	}
 
-	template.Labels["networking.resources.gardener.cloud/to-kube-jwt-authn-webhook-tcp-443"] = "allowed"
+	template.Labels["networking.resources.gardener.cloud/to-kube-jwt-authn-webhook-tcp-8443"] = "allowed"
 
 	return nil
 }
@@ -94,7 +94,7 @@ func (e *ensurer) EnsureKubeAPIServerDeployment(ctx context.Context, _ gcontext.
 func webhookKubeconfig(namespace string) ([]byte, error) {
 	var (
 		contextName = "kube-jwt-authn-webhook"
-		url         = fmt.Sprintf("http://kube-jwt-authn-webhook.%s.svc.cluster.local:443/authenticate", namespace)
+		url         = fmt.Sprintf("http://kube-jwt-authn-webhook.%s.svc.cluster.local:8443/authenticate", namespace)
 	)
 
 	config := &configv1.Config{
