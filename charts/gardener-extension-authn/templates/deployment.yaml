@@ -26,6 +26,11 @@ spec:
         networking.resources.gardener.cloud/to-all-shoots-kube-apiserver-tcp-443: allowed
 {{ include "labels" . | indent 8 }}
     spec:
+      {{- if (include "runtimeCluster.enabled" .) }}
+      priorityClassName: {{ .Values.gardener.runtimeCluster.priorityClassName }}
+      {{- else }}
+      priorityClassName: gardener-system-900
+      {{- end }}
       containers:
       - name: {{ include "name" . }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -38,7 +43,12 @@ spec:
         - --ignore-operation-annotation={{ .Values.controllers.ignoreOperationAnnotation }}
         - --webhook-config-namespace={{ .Release.Namespace }}
         - --webhook-config-server-port={{ .Values.webhookConfig.serverPort }}
+        {{- if (include "runtimeCluster.enabled" .) }}
+        - --extension-class=garden
+        {{- else }}
         - --disable-controllers={{ .Values.disableControllers | join "," }}
+        {{- end }}
+        - --gardener-version={{ .Values.gardener.version }}
         env:
         - name: LEADER_ELECTION_NAMESPACE
           valueFrom:
@@ -65,16 +75,6 @@ spec:
           readOnly: true
         {{- end }}
       serviceAccountName: {{ include "name" . }}
-      # affinity:
-      #   podAntiAffinity:
-      #     requiredDuringSchedulingIgnoredDuringExecution:
-      #     - labelSelector:
-      #         matchExpressions:
-      #         - key: {{ include "labels.app.key" . }}
-      #           operator: In
-      #           values:
-      #           - {{ include "labels.app.value" . }}
-      #       topologyKey: "kubernetes.io/hostname"
       volumes:
       - name: config
         configMap:
