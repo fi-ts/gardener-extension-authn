@@ -22,6 +22,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
+const GardenKubeconfigEnvName = "GARDEN_KUBECONFIG"
+
 // NewControllerManagerCommand creates a new command that is used to start the controller.
 func NewControllerManagerCommand() *cobra.Command {
 	options := NewOptions()
@@ -83,7 +85,7 @@ func (o *Options) run(ctx context.Context) error {
 
 	log := mgr.GetLogger()
 	log.Info("Getting rest config for garden")
-	gardenRESTConfig, err := kubernetes.RESTConfigFromKubeconfigFile(os.Getenv("GARDEN_KUBECONFIG"), kubernetes.AuthTokenFile)
+	gardenRESTConfig, err := kubernetes.RESTConfigFromKubeconfigFile(os.Getenv(GardenKubeconfigEnvName), kubernetes.AuthTokenFile)
 	if err != nil {
 		return err
 	}
