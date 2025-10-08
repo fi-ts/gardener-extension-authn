@@ -27,6 +27,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -185,6 +186,19 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"k8s-app": "kube-jwt-authn-webhook",
+				},
+			},
+			Strategy: appsv1.DeploymentStrategy{
+				Type: appsv1.RollingUpdateDeploymentStrategyType,
+				RollingUpdate: &appsv1.RollingUpdateDeployment{
+					MaxUnavailable: &intstr.IntOrString{
+						Type:   intstr.Int,
+						IntVal: 0,
+					},
+					MaxSurge: &intstr.IntOrString{
+						Type:   intstr.Int,
+						IntVal: 1,
+					},
 				},
 			},
 			Template: corev1.PodTemplateSpec{
@@ -355,6 +369,23 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 		},
 		webhookDeployment,
 		grcDeployment,
+		&policyv1.PodDisruptionBudget{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      webhookDeployment.Name,
+				Namespace: webhookDeployment.Namespace,
+			},
+			Spec: policyv1.PodDisruptionBudgetSpec{
+				MinAvailable: &intstr.IntOrString{
+					Type:   intstr.Int,
+					IntVal: 1,
+				},
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"k8s-app": "kube-jwt-authn-webhook",
+					},
+				},
+			},
+		},
 		&corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "kube-jwt-authn-webhook",
