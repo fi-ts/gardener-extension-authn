@@ -168,9 +168,11 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 		return nil, fmt.Errorf("cluster has no tenant annotation")
 	}
 
-	replicas := int32(1)
-	if controller.IsHibernated(cluster) {
-		replicas = 0
+	replicas := func(replicas int32) *int32 {
+		if controller.IsHibernated(cluster) {
+			return pointer.Pointer(int32(0))
+		}
+		return &replicas
 	}
 
 	webhookDeployment := &appsv1.Deployment{
@@ -182,7 +184,7 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: pointer.Pointer(replicas),
+			Replicas: replicas(2),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"k8s-app": "kube-jwt-authn-webhook",
@@ -314,7 +316,7 @@ func seedObjects(cc *config.ControllerConfiguration, authConfig *v1alpha1.AuthnC
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: pointer.Pointer(replicas),
+			Replicas: replicas(1),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": "group-rolebinding-controller",
