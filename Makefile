@@ -13,7 +13,7 @@ IGNORE_OPERATION_ANNOTATION := false
 WEBHOOK_CONFIG_URL          := localhost
 
 GOLANGCI_LINT_VERSION       := v2.4.0
-GO_VERSION 					:= 1.25
+GO_VERSION 					:= 1.26
 
 ifeq ($(CI),true)
   DOCKER_TTY_ARG=""
